@@ -1,6 +1,7 @@
 import Order from "../models/order.js";
+import Product from "../models/product.js";
 
-export function createOrder(req,res){
+export async function createOrder(req,res){
     if(req.user == null){
         res.status(403).json({
             "message":"Unauthorized to order"
@@ -20,7 +21,7 @@ export function createOrder(req,res){
     }
     Order.find().sort({
         date:-1
-    }).limit(1).then((lastBill)=>{
+    }).limit(1).then(async (lastBill)=>{
         if(lastBill.length == 0){
             orderData.orderId = "ORD0001";
         }else{
@@ -32,6 +33,24 @@ export function createOrder(req,res){
     
             orderData.orderId = "ORD" + newOrderStr;
         }
+        for(let i=0;i<body.billItems.length;i++){
+            const product = await Product.findOne({productId:body.billItems[i].productId});
+            if(product == null){
+                res.status(404).json({
+                    "message":"Product not found for productId: " + body.billItems[i].productId
+                })
+                return;
+            }
+            orderData.billItems[i]={
+                productId:product.productId,
+                productName:product.name,
+                image:product.images[0],
+                price:product.price,
+                quantity:body.billItems[i].quantity
+            };
+            orderData.total = orderData.total + product.price * body.billItems[i].quantity;
+        }
+
         const order = new Order(orderData);
     
         order.save().then(
@@ -85,4 +104,31 @@ export function getorders(req,res){
         )
     }
 
+}
+export async function updateOrder(req,res){
+    try{
+        if(req.user == null){
+            res.status(403).json({
+                "message":"Unauthorized to update order"
+            })
+            return;
+        }
+        if(req.user.role != "admin"){
+            res.status(403).json({
+                "message":"You cannot update the order"
+            })
+            return;
+        }
+        const orderId = req.params.orderId;
+        const order = await Order.findOneAndUpdate({orderId:orderId},req.body)
+
+        res.json({
+            "message":"Successfully updated the order"
+        })
+
+    }catch(err){
+        res.status(500).json({
+            "message":"Order not updated"
+        })
+    }
 }
