@@ -1,10 +1,12 @@
 import express from "express";
-import { getCurrentUser, googleLogin, loginUser, saveUser } from "../controllers/userController.js";
+import { changePassword, getCurrentUser, googleLogin, loginUser, saveUser, sentOTP } from "../controllers/userController.js";
 
 const userRouter = express.Router();
 
 userRouter.post("/", saveUser);
 userRouter.post("/login",loginUser);
 userRouter.post("/google",googleLogin);
-userRouter.get("/current",getCurrentUser)
+userRouter.get("/current",getCurrentUser);
+userRouter.post("/sendMail", sentOTP);
+userRouter.post("/resetPassword", changePassword);
 export default userRouter;
